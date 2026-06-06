@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OLAP 3D _ Thư viện Khoa học Tổng hợp Ánh Dương</title>
+    <!-- Nhúng font Montserrat chất lượng cao -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Nhúng FontAwesome biểu tượng -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        /* SETUP GIAO DIỆN LUXURY DARK MODE */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #04020a;
+            color: #f1f5f9;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* LAYOUT PHÂN CHIA KHÔNG GIAN */
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            height: 100%;
+            background: radial-gradient(circle at center, #0e0922 0%, #04020a 100%);
+        }
+
+        #sidebar {
+            width: 550px;
+            background-color: #0b0f19;
+            border-left: 1px solid #1e293b;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            overflow-y: auto;
+            box-shadow: -10px 0 40px rgba(0, 0, 0, 0.6);
+            z-index: 5;
+        }
+
+        /* TYPOGRAPHY */
+        h1 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #38bdf8;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            border-bottom: 2px solid #1e293b;
+            padding-bottom: 8px;
+            line-height: 1.4;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h2 {
+            font-size: 12px;
+            font-weight: 600;
+            color: #11caa0;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        p {
+            font-size: 11px;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        /* WIDGET THỐNG KÊ NHANH */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .stat-box {
+            background-color: #111827;
+            border: 1px solid #1e293b;
+            padding: 12px 8px;
+            border-radius: 6px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .stat-num {
+            font-size: 16px;
+            font-weight: 700;
+            color: #38bdf8;
+        }
+
+        /* CARD THÔNG TIN CHI TIẾT */
+        .info-card {
+            background-color: rgba(17, 24, 39, 0.85);
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .info-card.active {
+            border-color: #11caa0;
+            box-shadow: 0 0 15px rgba(17, 202, 160, 0.15);
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 11.5px;
+        }
+
+        .data-row:last-child {
+            margin-bottom: 0;
+            padding-top: 6px;
+            border-top: 1px dashed #1e293b;
+        }
+
+        .label {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .val {
+            color: #f8fafc;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .highlight-val {
+            font-size: 16px;
+            color: #11caa0;
+            font-weight: 700;
+        }
+
+        /* BỘ ĐIỀU KHIỂN & CHỌN TRỤC TỌA ĐỘ */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: #111827;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #1e293b;
+        }
+
+        .axis-selector-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .selector-box {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        select,
+        button {
+            width: 100%;
+            padding: 8px;
+            background-color: #060913;
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+            color: #f8fafc;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        select:focus,
+        button:hover {
+            border-color: #38bdf8;
+            outline: none;
+        }
+
+        button {
+            background-color: #005088;
+            font-weight: 600;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        button:hover {
+            background-color: #006eb8;
+        }
+
+        button.secondary {
+            background-color: transparent;
+            border: 1px solid #475569;
+        }
+
+        button.secondary:hover {
+            background-color: #1e293b;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+
+        .preset-btn {
+            background: linear-gradient(90deg, #0f172a, #1e293b);
+            border: 1px solid #38bdf8;
+            color: #38bdf8;
+            justify-content: flex-start;
+            text-align: left;
+            padding: 10px 12px;
+        }
+
+        .preset-btn:hover {
+            background: #38bdf8;
+            color: #060913;
+        }
+
+        .preset-btn.active-preset {
+            background: #38bdf8;
+            color: #060913;
+            font-weight: 700;
+        }
+
+        .code-title {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-bottom: 2px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .code-block {
+            background-color: #030408;
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 10.5px;
+            color: #11caa0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 180px;
+            line-height: 1.5;
+        }
+
+        .alert-error {
+            background-color: rgba(239, 68, 68, 0.15);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #instruction {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(6, 9, 19, 0.85);
+            padding: 8px 14px;
+            border-radius: 30px;
+            font-size: 11px;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        /* BẢNG PHÍM ĐIỀU HƯỚNG Ô (2D overlay góc dưới-phải) */
+        #nav-pad {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            z-index: 11;
+            background: rgba(11, 15, 25, 0.82);
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 10px 12px;
+            backdrop-filter: blur(4px);
+            user-select: none;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+        }
+
+        #nav-pad .nav-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .nav-dpad {
+            display: grid;
+            grid-template-columns: repeat(3, 36px);
+            grid-template-rows: repeat(3, 36px);
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .nav-z-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .nav-key {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1px;
+            border-radius: 7px;
+            background: #0b1120;
+            border: 1px solid #334155;
+            color: #cbd5e1;
+            font-weight: 700;
+            cursor: pointer;
+            line-height: 1;
+            transition: background 0.15s, transform 0.08s, box-shadow 0.15s;
+        }
+
+        .nav-key:hover {
+            background: #1e293b;
+        }
+
+        .nav-key.pressed {
+            transform: scale(0.9);
+        }
+
+        .nav-key .k-sym {
+            font-size: 15px;
+        }
+
+        .nav-key .k-ax {
+            font-size: 8px;
+            font-weight: 800;
+        }
+
+        .nav-key.ax-x {
+            border-color: rgba(244, 63, 94, 0.4);
+        }
+
+        .nav-key.ax-x .k-ax {
+            color: #f43f5e;
+        }
+
+        .nav-key.ax-x.pressed {
+            box-shadow: 0 0 12px rgba(244, 63, 94, 0.6);
+            background: rgba(244, 63, 94, 0.18);
+        }
+
+        .nav-key.ax-y {
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        .nav-key.ax-y .k-ax {
+            color: #34d399;
+        }
+
+        .nav-key.ax-y.pressed {
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+            background: rgba(16, 185, 129, 0.18);
+        }
+
+        .nav-key.ax-z {
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+
+        .nav-key.ax-z .k-ax {
+            color: #60a5fa;
+        }
+
+        .nav-key.ax-z.pressed {
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+            background: rgba(59, 130, 246, 0.18);
+        }
+
+        .nav-key.wide {
+            flex-direction: row;
+            gap: 5px;
+            height: 30px;
+            font-size: 10px;
+        }
+
+        .nav-empty {
+            visibility: hidden;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="canvas-container">
+        <div id="instruction">
+            <i class="fa-solid fa-cube" style="color: #38bdf8;"></i>
+            <span>Chuột trái: Xoay | Chuột phải: Di chuyển | Cuộn: Zoom | Click ô để chọn | Phím ←→ ↑↓ PageUp/PageDown: chuyển ô lân cận</span>
+        </div>
+
+        <!-- Bảng phím điều hướng ô: vừa hiển thị, vừa bấm được để chuyển ô -->
+        <div id="nav-pad">
+            <div class="nav-title"><i class="fa-solid fa-arrows-up-down-left-right"></i> Chuyển ô lân cận</div>
+            <div class="nav-dpad">
+                <div class="nav-empty"></div>
+                <div class="nav-key ax-y" data-axis="y" data-dir="1" title="Lên • trục Y (↑)"><span class="k-sym">↑</span><span class="k-ax">Y</span></div>
+                <div class="nav-empty"></div>
+                <div class="nav-key ax-x" data-axis="x" data-dir="-1" title="Trái • trục X (←)"><span class="k-sym">←</span><span class="k-ax">X</span></div>
+                <div class="nav-empty"></div>
+                <div class="nav-key ax-x" data-axis="x" data-dir="1" title="Phải • trục X (→)"><span class="k-sym">→</span><span class="k-ax">X</span></div>
+                <div class="nav-empty"></div>
+                <div class="nav-key ax-y" data-axis="y" data-dir="-1" title="Xuống • trục Y (↓)"><span class="k-sym">↓</span><span class="k-ax">Y</span></div>
+                <div class="nav-empty"></div>
+            </div>
+            <div class="nav-z-row">
+                <div class="nav-key ax-z wide" data-axis="z" data-dir="1" title="Tiến • trục Z (PageUp)"><span class="k-sym">PgUp</span><span class="k-ax">Z</span></div>
+                <div class="nav-key ax-z wide" data-axis="z" data-dir="-1" title="Lùi • trục Z (PageDown)"><span class="k-sym">PgDn</span><span class="k-ax">Z</span></div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="sidebar">
+        <h1><i class="fa-solid fa-database"></i> OLAP 3D _ Thư viện Khoa học Tổng hợp Ánh Dương</h1>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Chiều khả dụng</div>
+                <div class="stat-num" id="stat-total-dim">9 / 9</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Tổng ô hiển thị</div>
+                <div class="stat-num" id="stat-grid-size">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Độ chính xác dữ liệu</div>
+                <div class="stat-num" style="color: #11caa0;" id="stat-density">100%</div>
+            </div>
+        </div>
+
+        <!-- PRESETS CHO ĐỒ ÁN TRONG THẺ GOOGLE DOCS -->
+        <div class="control-group" style="border-color: #38bdf8;">
+            <h2><i class="fa-solid fa-bolt"></i> MDX Queries (Tính Toán Nâng Cao)</h2>
+            <div class="preset-grid">
+                <button class="preset-btn" id="btn-4-1" onclick="applyPreset('4_1')"><i class="fa-solid fa-book-open"></i> 4.1. TOP 10 NXB & Thể loại có Ngày mượn TB cao nhất</button>
+                <button class="preset-btn" id="btn-4-2" onclick="applyPreset('4_2')"><i class="fa-solid fa-money-bill-wave"></i> 4.2. TOP 10 NV & Thể loại bị Phạt nhiều nhất</button>
+                <button class="preset-btn" id="btn-4-3" onclick="applyPreset('4_3')"><i class="fa-solid fa-users-viewfinder"></i> 4.3. TOP 20 Thể loại mượn nhiều & Tỷ trọng % (Theo GT)</button>
+            </div>
+        </div>
+
+        <!-- BỘ ĐIỀU KHIỂN & LỰA CHỌN PHÂN CẤP CHIỀU (9 CHIỀU ĐẦY ĐỦ THỰC TẾ) -->
+        <div class="control-group">
+            <h2><i class="fa-solid fa-gears"></i> Phân bổ trục tọa độ & Phân cấp chiều</h2>
+            <div class="axis-selector-row">
+                <div class="selector-box">
+                    <span class="label" style="font-size: 10px; color:#f43f5e; font-weight:600;">Trục X (Cột):</span>
+                    <select id="select-x">
+                        <option value="thoi_gian_nam" selected>Thời gian (Năm)</option>
+                        <option value="thoi_gian_quy">Thời gian (Quý)</option>
+                        <option value="thoi_gian_thang">Thời gian (Tháng)</option>
+                        <option value="nhan_vien">Nhân viên</option>
+                        <option value="the_loai">Thể loại sách</option>
+                        <option value="doc_gia_gt">Độc giả (Giới tính)</option>
+                        <option value="doc_gia_ns">Độc giả (Năm sinh)</option>
+                        <option value="nha_xuat_ban">Nhà xuất bản</option>
+                        <option value="tac_gia">Tác giả</option>
+                    </select>
+                </div>
+
+                <div class="selector-box">
+                    <span class="label" style="font-size: 10px; color:#10b981; font-weight:600;">Trục Y (Dòng):</span>
+                    <select id="select-y">
+                        <option value="thoi_gian_nam">Thời gian (Năm)</option>
+                        <option value="thoi_gian_quy">Thời gian (Quý)</option>
+                        <option value="thoi_gian_thang">Thời gian (Tháng)</option>
+                        <option value="nhan_vien" selected>Nhân viên</option>
+                        <option value="the_loai">Thể loại sách</option>
+                        <option value="doc_gia_gt">Độc giả (Giới tính)</option>
+                        <option value="doc_gia_ns">Độc giả (Năm sinh)</option>
+                        <option value="nha_xuat_ban">Nhà xuất bản</option>
+                        <option value="tac_gia">Tác giả</option>
+                    </select>
+                </div>
+
+                <div class="selector-box">
+                    <span class="label" style="font-size: 10px; color:#3b82f6; font-weight:600;">Trục Z (Trang):</span>
+                    <select id="select-z">
+                        <option value="thoi_gian_nam">Thời gian (Năm)</option>
+                        <option value="thoi_gian_quy">Thời gian (Quý)</option>
+                        <option value="thoi_gian_thang">Thời gian (Tháng)</option>
+                        <option value="nhan_vien">Nhân viên</option>
+                        <option value="the_loai">Thể loại sách</option>
+                        <option value="doc_gia_gt">Độc giả (Giới tính)</option>
+                        <option value="doc_gia_ns">Độc giả (Năm sinh)</option>
+                        <option value="nha_xuat_ban" selected>Nhà xuất bản</option>
+                        <option value="tac_gia">Tác giả</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="alert-error" id="alert-duplicate">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>Lỗi: Các chiều chọn trên trục không được phép trùng nhau.</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h2><i class="fa-solid fa-scissors"></i> Thao tác Slice & Dice (Cắt Lát)</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div>
+                    <span class="label" style="font-size: 10px;">Lọc theo trục đang hiện:</span>
+                    <select id="slice-dimension">
+                        <option value="none" selected>-- Không cắt lát --</option>
+                    </select>
+                </div>
+                <div>
+                    <span class="label" style="font-size: 10px;">Giá trị cắt lát cố định:</span>
+                    <select id="slice-value" disabled>
+                        <option value="all">-- Chọn giá trị --</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- ẨN HOÀN TOÀN KHỎI SIDEBAR ĐỂ ĐẢM BẢO TÍNH TỐI GIẢN CHUYÊN NGHIỆP -->
+        <div class="control-group" style="display: none;">
+            <h2><i class="fa-solid fa-cubes"></i> Chế độ hiển thị khối 3D</h2>
+            <select id="cube-view-mode">
+                <option value="dense" selected>Chế độ đặc</option>
+                <option value="real">Chế độ thực tế</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <h2><i class="fa-solid fa-calculator"></i> Độ đo phân tích (Measure)</h2>
+            <select id="select-measure">
+                <option value="tong_ngay_muon" selected>Tổng số ngày mượn</option>
+                <option value="tong_luot_muon">Tổng lượt mượn</option>
+                <option value="tien_phat">Tổng tiền phạt</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <h2><i class="fa-solid fa-chart-pie"></i> Giá trị tại ô giao cắt (Voxel Value)</h2>
+            <div class="info-card active" id="query-result-box">
+                <div class="data-row">
+                    <span class="label" id="lbl-cell-x">Chiều Trục X:</span>
+                    <span class="val" id="res-x">-</span>
+                </div>
+                <div class="data-row">
+                    <span class="label" id="lbl-cell-y">Chiều Trục Y:</span>
+                    <span class="val" id="res-y">-</span>
+                </div>
+                <div class="data-row">
+                    <span class="label" id="lbl-cell-z">Chiều Trục Z:</span>
+                    <span class="val" id="res-z">-</span>
+                </div>
+                <div class="data-row" id="row-sliced" style="display: none;">
+                    <span class="label" id="lbl-cell-sliced" style="color: #38bdf8;">Lát cắt cố định:</span>
+                    <span class="val" id="res-sliced" style="color: #38bdf8;">-</span>
+                </div>
+                <div class="data-row">
+                    <span class="label" style="font-weight: 600; color: #f8fafc;">Số liệu đo lường:</span>
+                    <span class="val highlight-val" id="res-value">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ẨN HOÀN TOÀN PHẦN HIỂN THỊ MDX ĐỂ SIDEBAR SẠCH SẼ NHẤT -->
+        <div style="display: none;">
+            <div class="code-title">
+                <span><i class="fa-solid fa-code"></i> TƯƠNG ỨNG MDX QUERY (Khớp 100% Báo cáo)</span>
+            </div>
+            <div class="code-block" id="code-mdx">Chọn một ô phát sáng để sinh câu lệnh MDX tương ứng...</div>
+        </div>
+
+        <div class="control-group" style="margin-top: auto;">
+            <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 8px;">
+                <button id="btn-auto-rotate" class="secondary"><i class="fa-solid fa-rotate"></i> Tự động xoay</button>
+                <button id="btn-reset" class="secondary"><i class="fa-solid fa-arrows-to-dot"></i> Trả về mặc
+                    định</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- THREE.JS CDN CHUẨN ĐỒNG BỘ -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- DỮ LIỆU THẬT trích xuất từ QLTV.txt (xem convert.cjs). Cung cấp window.QLTV_DATA -->
+    <script src="qltv-data.js"></script>
+
+    <script>
+        let currentActivePreset = null;
+
+        const DATA = window.QLTV_DATA;
+        if (!DATA) {
+            document.body.innerHTML = '<div style="margin:auto;font-family:sans-serif;color:#fca5a5;padding:40px;text-align:center;">' +
+                '<h2>Không nạp được qltv-data.js</h2><p>Hãy chạy <code>node convert.cjs</code> để sinh dữ liệu, ' +
+                'và đảm bảo file <code>qltv-data.js</code> nằm cùng thư mục với 3dhtml.html.</p></div>';
+            throw new Error('QLTV_DATA missing');
+        }
+
+        const allRecords = DATA.records || [];
+
+        // LẤY TOP 20 PHẦN TỬ PHỔ BIẾN NHẤT TỪ MẢNG RECORDS ĐỂ KHỐI 3D KHÔNG BỊ QUÁ TẢI (TRÁNH CRASH TRÌNH DUYỆT)
+        function getUniqueValues(field, limit = 20) {
+            const counts = {};
+            for (let i = 0; i < allRecords.length; i++) {
+                const val = allRecords[i][field];
+                if (val && val !== 'Không rõ') {
+                    counts[val] = (counts[val] || 0) + 1;
+                }
+            }
+            return Object.entries(counts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, limit)
+                .map(e => e[0]);
+        }
+
+        const quarters = ["Quý 1", "Quý 2", "Quý 3", "Quý 4"];
+        const months = ["Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"];
+
+        // KHAI BÁO 9 CHIỀU PHÂN TÍCH CHUẨN XÁC, GIỚI HẠN TOP 20
+        const dimensionsData = {
+            thoi_gian_nam: { label: "Năm mượn", mdxName: "[Ngay Muon]", mdxAttrs: ["[Nam]"], members: getUniqueValues('nam', 20).sort() },
+            thoi_gian_quy: { label: "Quý mượn", mdxName: "[Ngay Muon]", mdxAttrs: ["[Quy]"], members: getUniqueValues('quy', 20).sort((a, b) => quarters.indexOf(a) - quarters.indexOf(b)) },
+            thoi_gian_thang: { label: "Tháng mượn", mdxName: "[Ngay Muon]", mdxAttrs: ["[Thang]"], members: getUniqueValues('thang', 20).sort((a, b) => months.indexOf(a) - months.indexOf(b)) },
+            nhan_vien: { label: "Nhân viên phục vụ", mdxName: "[Nhan Vien]", mdxAttrs: ["[Ten NV]"], members: getUniqueValues('nv', 20).sort() },
+            the_loai: { label: "Thể loại sách", mdxName: "[Quyen Sach]", mdxAttrs: ["[Ten The Loai]"], members: getUniqueValues('tl', 20).sort() },
+            doc_gia_gt: { label: "Giới tính Độc giả", mdxName: "[Ban Doc]", mdxAttrs: ["[Gioi Tinh]"], members: getUniqueValues('gt', 20).sort() },
+            doc_gia_ns: { label: "Năm sinh Độc giả", mdxName: "[Ban Doc]", mdxAttrs: ["[Nam Sinh]"], members: getUniqueValues('ns', 20).sort((a, b) => Number(a) - Number(b)) },
+            nha_xuat_ban: { label: "Nhà xuất bản", mdxName: "[Quyen Sach]", mdxAttrs: ["[Ten NXB]"], members: getUniqueValues('nxb', 20).sort() },
+            tac_gia: { label: "Tác giả", mdxName: "[Tac Gia]", mdxAttrs: ["[Ten TG]"], members: getUniqueValues('tg', 20).sort() }
+        };
+
+        const measuresConfig = {
+            tong_ngay_muon: { label: "Tổng Số Ngày Mượn", expr: "SUM([Measures].[So Ngay Muon])", unit: "ngày" },
+            tong_luot_muon: { label: "Tổng Lượt Mượn", expr: "DISTINCTCOUNT([Chi Tiet Muon Tra].[Ma Phieu].[Ma Phieu].MEMBERS)", unit: "lượt" },
+            tien_phat: { label: "Tổng Tiền Phạt", expr: "SUM([Measures].[Tien Phat])", unit: "VNĐ" }
+        };
+
+        // 3. THUẬT TOÁN ĐỒNG BỘ PHÂN PHỐI DỮ LIỆU CHUẨN XÁC
+        function evaluateCubeValue(attributes, measureKey, viewMode) {
+            let matches = allRecords;
+
+            for (let dimKey in attributes) {
+                const targetValue = attributes[dimKey];
+                if (targetValue && targetValue !== "all") {
+                    let currentMatches = [];
+                    if (dimKey === "thoi_gian_nam") currentMatches = matches.filter(r => r.nam === targetValue);
+                    else if (dimKey === "thoi_gian_quy") currentMatches = matches.filter(r => r.quy === targetValue);
+                    else if (dimKey === "thoi_gian_thang") currentMatches = matches.filter(r => r.thang === targetValue);
+                    else if (dimKey === "nhan_vien") currentMatches = matches.filter(r => r.nv === targetValue);
+                    else if (dimKey === "the_loai") currentMatches = matches.filter(r => r.tl === targetValue);
+                    else if (dimKey === "doc_gia_gt") currentMatches = matches.filter(r => r.gt === targetValue);
+                    else if (dimKey === "doc_gia_ns") currentMatches = matches.filter(r => r.ns === targetValue);
+                    else if (dimKey === "nha_xuat_ban") currentMatches = matches.filter(r => r.nxb === targetValue);
+                    else if (dimKey === "tac_gia") currentMatches = matches.filter(r => r.tg === targetValue);
+
+                    if (currentMatches.length > 0) {
+                        matches = currentMatches;
+                    } else {
+                        return 0; // Tối ưu: Dừng ngay nếu một filter không có kết quả
+                    }
+                }
+            }
+
+            if (viewMode === 'real') {
+                matches = matches.filter(r => !r.pm.includes("GEN"));
+                if (matches.length === 0) return 0;
+            }
+
+            if (matches.length > 0) {
+                if (measureKey === "tong_luot_muon") {
+                    return new Set(matches.map(m => m.pm)).size;
+                } else if (measureKey === "tong_ngay_muon") {
+                    return matches.reduce((sum, item) => sum + (item.ngayMuon || 0), 0);
+                } else if (measureKey === "tien_phat") {
+                    return matches.reduce((sum, item) => sum + (item.tienPhat || 0), 0);
+                }
+            }
+            return 0;
+        }
+
+        // 4. KHỞI TẠO HỆ THỐNG PHÂN CẢNH THREE.JS (NỀN VŨ TRỤ)
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+        const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.7); dirLight1.position.set(12, 18, 12); scene.add(dirLight1);
+        const dirLight2 = new THREE.DirectionalLight(0x38bdf8, 0.4); dirLight2.position.set(-12, -6, -12); scene.add(dirLight2);
+
+        // HỆ THỐNG BỤI SAO LẤP LÁNH (Galaxy Starfield)
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsCount = 2000;
+        const starPositions = new Float32Array(starsCount * 3);
+        const starColors = new Float32Array(starsCount * 3);
+
+        for (let i = 0; i < starsCount * 3; i += 3) {
+            const radius = 25 + Math.random() * 70;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos((Math.random() * 2) - 1);
+
+            starPositions[i] = radius * Math.sin(phi) * Math.cos(theta);
+            starPositions[i + 1] = radius * Math.sin(phi) * Math.sin(theta);
+            starPositions[i + 2] = radius * Math.cos(phi);
+
+            const r = Math.random();
+            if (r < 0.5) {
+                starColors[i] = 1.0; starColors[i+1] = 1.0; starColors[i+2] = 1.0;
+            } else if (r < 0.8) {
+                starColors[i] = 0.4; starColors[i+1] = 0.8; starColors[i+2] = 1.0;
+            } else {
+                starColors[i] = 0.8; starColors[i+1] = 0.4; starColors[i+2] = 0.9;
+            }
+        }
+        starsGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        starsGeometry.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+        const starsMaterial = new THREE.PointsMaterial({ size: 0.25, vertexColors: true, transparent: true, opacity: 0.8, sizeAttenuation: true });
+        const starField = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(starField);
+
+        let cubeGroup = new THREE.Group();
+        scene.add(cubeGroup);
+        let voxels = [];
+        let voxelGrid = {};
+        let gridDims = { x: 0, y: 0, z: 0 };
+        let tickMeshes = { x: [], y: [], z: [] };
+
+        // ===== Nhãn GIÁ TRỊ 3D =====
+        function roundRect(g, x, y, w, h, r) {
+            g.beginPath(); g.moveTo(x + r, y);
+            g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+            g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+        }
+        const _LBL_FS = 44, _LBL_PAD = 12, _LBL_FONT = `700 44px Montserrat, Arial, sans-serif`;
+        function drawLabelCanvas(text, cssColor, bgAlpha, highlight, accent) {
+            const c = document.createElement('canvas');
+            const g = c.getContext('2d');
+            g.font = _LBL_FONT;
+            c.width = Math.ceil(g.measureText(text).width) + _LBL_PAD * 2;
+            c.height = _LBL_FS + _LBL_PAD * 2;
+            g.font = _LBL_FONT; g.textAlign = 'center'; g.textBaseline = 'middle';
+            if (highlight) {
+                g.fillStyle = accent || cssColor;
+                roundRect(g, 1, 1, c.width - 2, c.height - 2, 10); g.fill();
+                g.fillStyle = '#06121f';
+            } else {
+                g.fillStyle = 'rgba(6,9,19,' + (bgAlpha != null ? bgAlpha : 0.66) + ')';
+                roundRect(g, 1, 1, c.width - 2, c.height - 2, 10); g.fill();
+                g.fillStyle = cssColor;
+            }
+            g.fillText(text, c.width / 2, c.height / 2 + 1);
+            return c;
+        }
+        function measureLabelW(text, H) {
+            H = H || 0.45;
+            const g = document.createElement('canvas').getContext('2d');
+            g.font = _LBL_FONT;
+            const w = Math.ceil(g.measureText(text).width) + _LBL_PAD * 2;
+            return H * w / (_LBL_FS + _LBL_PAD * 2);
+        }
+        function makeLabelMesh(text, cssColor, H, bgAlpha, accent) {
+            H = H || 0.45;
+            const c = drawLabelCanvas(text, cssColor, bgAlpha, false, accent);
+            const tex = new THREE.CanvasTexture(c);
+            tex.minFilter = THREE.LinearFilter; tex.anisotropy = 4;
+            const W = H * c.width / c.height;
+            const mesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(W, H),
+                new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false })
+            );
+            mesh.userData = { labelW: W, text, color: cssColor, bgAlpha, accent };
+            return mesh;
+        }
+        function setTickHighlight(mesh, on) {
+            if (!mesh) return;
+            const u = mesh.userData;
+            if (mesh.material.map) mesh.material.map.dispose();
+            const c = drawLabelCanvas(u.text, u.color, u.bgAlpha, on, u.accent);
+            const tex = new THREE.CanvasTexture(c);
+            tex.minFilter = THREE.LinearFilter; tex.anisotropy = 4;
+            mesh.material.map = tex; mesh.material.needsUpdate = true;
+            mesh.material.depthTest = !on;
+            mesh.renderOrder = on ? 1000 : 0;
+            mesh.scale.setScalar(on ? 1.5 : 1);
+        }
+        const _lr = new THREE.Vector3(), _lu = new THREE.Vector3(), _ln = new THREE.Vector3(), _lm = new THREE.Matrix4();
+        function orientMesh(mesh, right, up) {
+            _lr.copy(right).normalize(); _lu.copy(up).normalize();
+            _ln.crossVectors(_lr, _lu).normalize();
+            _lm.makeBasis(_lr, _lu, _ln);
+            mesh.quaternion.setFromRotationMatrix(_lm);
+        }
+        const TICK_DIR = {
+            x: { right: new THREE.Vector3(0, 0, -1), up: new THREE.Vector3(-1, 0, 0) },
+            z: { right: new THREE.Vector3(1, 0, 0), up: new THREE.Vector3(0, 0, -1) },
+            y: { right: new THREE.Vector3(0, 0, -1), up: new THREE.Vector3(0, 1, 0) }
+        };
+        function rebuildTickLabels(listX, listY, listZ, oX, oY, oZ, nameX, nameY, nameZ) {
+            const fY = -oY - 0.5, fX = -oX - 0.5, fZ = -oZ - 0.5;
+            tickMeshes = { x: [], y: [], z: [] };
+            const place = (text, color, H, bg, x, y, z, dir, accent) => {
+                const el = makeLabelMesh(text, color, H, bg, accent);
+                el.position.set(x, y, z);
+                orientMesh(el, dir.right, dir.up);
+                cubeGroup.add(el);
+                return el;
+            };
+            listX.forEach((m, i) => {
+                tickMeshes.x[i] = place(m, '#fda4b4', 0.45, 0.66, i * spacing - oX, fY - 0.02, fZ - 0.55, TICK_DIR.x, '#f43f5e');
+            });
+            listZ.forEach((m, i) => {
+                const w = measureLabelW(m);
+                tickMeshes.z[i] = place(m, '#93c5fd', 0.45, 0.66, fX - 0.55 - w / 2, fY - 0.02, i * spacing - oZ, TICK_DIR.z, '#3b82f6');
+            });
+            listY.forEach((m, i) => {
+                const w = measureLabelW(m);
+                tickMeshes.y[i] = place(m, '#6ee7b7', 0.45, 0.66, fX - 0.12, i * spacing - oY, fZ - 0.55 - w / 2, TICK_DIR.y, '#10b981');
+            });
+            const NH = 0.62;
+            place('(X) ' + nameX, '#f43f5e', NH, 0.82, oX + 1.1, fY - 0.02, fZ - 0.55, TICK_DIR.x);
+            place('(Z) ' + nameZ, '#3b82f6', NH, 0.82, fX - 0.55, fY - 0.02, oZ + 1.3, TICK_DIR.z);
+            place('(Y) ' + nameY, '#34d399', NH, 0.82, fX - 0.12, oY + 1.2, fZ - 0.55, TICK_DIR.y);
+        }
+
+        const spacing = 1.15;
+        const cubeSize = 0.9;
+        const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+
+        const selectionOutline = new THREE.LineSegments(
+            new THREE.EdgesGeometry(new THREE.BoxGeometry(cubeSize + 0.12, cubeSize + 0.12, cubeSize + 0.12)),
+            new THREE.LineBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 1, depthTest: false })
+        );
+        selectionOutline.renderOrder = 999;
+        selectionOutline.visible = false;
+
+        const valueLabel = new THREE.Mesh(
+            new THREE.PlaneGeometry(1, 1),
+            new THREE.MeshBasicMaterial({ transparent: true, depthTest: false, depthWrite: false })
+        );
+        valueLabel.renderOrder = 1002;
+        valueLabel.visible = false;
+        scene.add(valueLabel);
+
+        function setValueLabel(text) {
+            if (valueLabel.material.map) valueLabel.material.map.dispose();
+            const c = drawLabelCanvas(text, '#06121f', null, true, '#22d3ee');
+            const tex = new THREE.CanvasTexture(c);
+            tex.minFilter = THREE.LinearFilter; tex.anisotropy = 4;
+            valueLabel.material.map = tex; valueLabel.material.needsUpdate = true;
+            const H = 0.6, W = H * c.width / c.height;
+            valueLabel.geometry.dispose();
+            valueLabel.geometry = new THREE.PlaneGeometry(W, H);
+        }
+        const _vlPos = new THREE.Vector3();
+
+        // 5. THAO TÁC CẮT LÁT NÂNG CAO
+        const selectX = document.getElementById('select-x');
+        const selectY = document.getElementById('select-y');
+        const selectZ = document.getElementById('select-z');
+        const sliceDimSelect = document.getElementById('slice-dimension');
+        const sliceValSelect = document.getElementById('slice-value');
+
+        function updateSliceDimensionOptions() {
+            const vX = selectX.value, vY = selectY.value, vZ = selectZ.value;
+            const currentSlice = sliceDimSelect.value;
+            sliceDimSelect.innerHTML = "<option value='none'>-- Không cắt lát --</option>";
+            const activeDims = [
+                { key: vX, label: "Trục X: " + dimensionsData[vX].label },
+                { key: vY, label: "Trục Y: " + dimensionsData[vY].label },
+                { key: vZ, label: "Trục Z: " + dimensionsData[vZ].label }
+            ];
+            activeDims.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.key;
+                opt.innerText = `Cắt theo ${item.label}`;
+                sliceDimSelect.appendChild(opt);
+            });
+            const keys = activeDims.map(d => d.key);
+            if (currentSlice !== "none" && keys.includes(currentSlice)) {
+                sliceDimSelect.value = currentSlice;
+            } else {
+                sliceDimSelect.value = "none";
+                sliceValSelect.innerHTML = "<option value='all'>-- Chọn giá trị --</option>";
+                sliceValSelect.disabled = true;
+            }
+        }
+
+        sliceDimSelect.addEventListener('change', (e) => {
+            const dimKey = e.target.value;
+            sliceValSelect.innerHTML = "";
+            if (dimKey === "none") {
+                sliceValSelect.disabled = true;
+                sliceValSelect.innerHTML = "<option value='all'>-- Chọn giá trị --</option>";
+            } else {
+                sliceValSelect.disabled = false;
+                dimensionsData[dimKey].members.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m; opt.innerText = m;
+                    sliceValSelect.appendChild(opt);
+                });
+            }
+            buildCube();
+        });
+        sliceValSelect.addEventListener('change', buildCube);
+
+        function onAxisChange() {
+            currentActivePreset = null;
+            updatePresetButtons();
+            updateSliceDimensionOptions();
+            buildCube();
+        }
+        selectX.addEventListener('change', onAxisChange);
+        selectY.addEventListener('change', onAxisChange);
+        selectZ.addEventListener('change', onAxisChange);
+        document.getElementById('select-measure').addEventListener('change', buildCube);
+
+        function updatePresetButtons() {
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active-preset'));
+            if (currentActivePreset) {
+                document.getElementById('btn-' + currentActivePreset.replace('_', '-')).classList.add('active-preset');
+            }
+        }
+
+        window.applyPreset = function (presetId) {
+            currentActivePreset = presetId;
+            updatePresetButtons();
+            if (presetId === '4_1') {
+                selectX.value = 'thoi_gian_nam';
+                selectY.value = 'nha_xuat_ban';
+                selectZ.value = 'the_loai';
+                document.getElementById('select-measure').value = 'tong_ngay_muon';
+            } else if (presetId === '4_2') {
+                selectX.value = 'thoi_gian_nam';
+                selectY.value = 'nhan_vien';
+                selectZ.value = 'the_loai';
+                document.getElementById('select-measure').value = 'tien_phat';
+            } else if (presetId === '4_3') {
+                selectX.value = 'thoi_gian_nam';
+                selectY.value = 'the_loai';
+                selectZ.value = 'doc_gia_gt';
+                document.getElementById('select-measure').value = 'tong_luot_muon';
+            }
+            sliceDimSelect.value = 'none';
+            sliceValSelect.disabled = true;
+            updateSliceDimensionOptions();
+            buildCube();
+        }
+
+        // 7. HÀM DỰNG KHỐI LẬP PHƯƠNG CUBE
+        function buildCube() {
+            if (selectionOutline.parent) selectionOutline.parent.remove(selectionOutline);
+            selectionOutline.visible = false;
+            valueLabel.visible = false;
+            selectedMesh = null;
+
+            while (cubeGroup.children.length > 0) {
+                const obj = cubeGroup.children[0];
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+                    mats.forEach(m => { if (m.map) m.map.dispose(); m.dispose(); });
+                }
+                cubeGroup.remove(obj);
+            }
+            voxels = [];
+            voxelGrid = {};
+
+            const keyX = selectX.value, keyY = selectY.value, keyZ = selectZ.value;
+            const measureKey = document.getElementById('select-measure').value;
+            const sliceDim = sliceDimSelect.value, sliceVal = sliceValSelect.value;
+
+            if (keyX === keyY || keyY === keyZ || keyX === keyZ) {
+                document.getElementById('alert-duplicate').style.display = 'flex';
+                sliceDimSelect.disabled = true; sliceValSelect.disabled = true;
+                return;
+            } else {
+                document.getElementById('alert-duplicate').style.display = 'none';
+                sliceDimSelect.disabled = false;
+            }
+
+            if (sliceDim !== 'none' && sliceVal !== 'all') {
+                document.getElementById('row-sliced').style.display = 'flex';
+                document.getElementById('lbl-cell-sliced').innerText = `Lát cắt (${dimensionsData[sliceDim].label}):`;
+                document.getElementById('res-sliced').innerText = sliceVal;
+            } else {
+                document.getElementById('row-sliced').style.display = 'none';
+            }
+
+            const listX = dimensionsData[keyX].members, listY = dimensionsData[keyY].members, listZ = dimensionsData[keyZ].members;
+            gridDims = { x: listX.length, y: listY.length, z: listZ.length };
+            document.getElementById('stat-grid-size').innerText = listX.length * listY.length * listZ.length;
+
+            const oX = (listX.length - 1) * spacing / 2, oY = (listY.length - 1) * spacing / 2, oZ = (listZ.length - 1) * spacing / 2;
+
+            const maxDimLength = Math.max(listX.length, listY.length, listZ.length);
+            const cameraDist = Math.max(10, maxDimLength * spacing * 1.5);
+            camera.position.set(cameraDist, cameraDist * 0.8, cameraDist * 1.2);
+            controls.target.set(0, 0, 0);
+
+            let allValues = [];
+            let voxelObjects = [];
+
+            for (let x = 0; x < listX.length; x++) {
+                for (let y = 0; y < listY.length; y++) {
+                    for (let z = 0; z < listZ.length; z++) {
+                        if (sliceDim !== 'none' && sliceVal !== 'all') {
+                            if (sliceDim === keyX && listX[x] !== sliceVal) continue;
+                            if (sliceDim === keyY && listY[y] !== sliceVal) continue;
+                            if (sliceDim === keyZ && listZ[z] !== sliceVal) continue;
+                        }
+                        const attrs = { [keyX]: listX[x], [keyY]: listY[y], [keyZ]: listZ[z] };
+                        const val = evaluateCubeValue(attrs, measureKey);
+                        allValues.push(val);
+                        voxelObjects.push({ x, y, z, val, nameX: listX[x], nameY: listY[y], nameZ: listZ[z] });
+                    }
+                }
+            }
+
+            const minVal = Math.min(...allValues.filter(v => v > 0), 1);
+            const maxVal = Math.max(...allValues, 1);
+
+            voxelObjects.forEach(d => {
+                const color = new THREE.Color();
+                let isGhost = false;
+
+                if (d.val > 0) {
+                    // Áp dụng chuyển màu tuyến tính mịn (không bị giật cấp cứng)
+                    let normalized = maxVal > minVal ? (d.val - minVal) / (maxVal - minVal) : 1.0;
+                    
+                    if (measureKey === "tien_phat") {
+                        // TÔNG ĐỎ CHO ĐỘ ĐO TIỀN PHẠT
+                        // Từ Hồng đỏ nhạt (#fee2e2) đến Đỏ đậm gạch sẫm (#7f1d1d)
+                        color.lerpColors(new THREE.Color('#fee2e2'), new THREE.Color('#7f1d1d'), normalized);
+                    } else {
+                        // TÔNG XANH CHO CÁC ĐỘ ĐO CÒN LẠI (SỐ LƯỢNG)
+                        // Từ Xanh thiên thanh siêu nhạt (#e0f2fe) đến Xanh biển sẫm (#1d4ed8)
+                        color.lerpColors(new THREE.Color('#e0f2fe'), new THREE.Color('#1d4ed8'), normalized);
+                    }
+                } else {
+                    isGhost = true;
+                    // Ô KHÔNG GIAO DỊCH VẪN LÀ MÀU TRẮNG TRONG SUỐT HOÀN TOÀN
+                    color.setHex(0xffffff); 
+                }
+
+                const material = new THREE.MeshStandardMaterial({
+                    color: color, 
+                    transparent: true, 
+                    // Độ đục: Khối rỗng siêu trong suốt (0.05), khối có giá trị đục dần theo năng suất thực tế
+                    opacity: isGhost ? 0.05 : (0.35 + 0.6 * (maxVal > minVal ? (d.val - minVal) / (maxVal - minVal) : 1)), 
+                    roughness: 0.1, 
+                    metalness: 0.3, 
+                    side: THREE.DoubleSide
+                });
+
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(d.x * spacing - oX, d.y * spacing - oY, d.z * spacing - oZ);
+                mesh.userData = { gridX: d.x, nameX: d.nameX, keyX: keyX, gridY: d.y, nameY: d.nameY, keyY: keyY, gridZ: d.z, nameZ: d.nameZ, keyZ: keyZ, val: d.val, measureKey: measureKey, sliceDim: sliceDim, sliceVal: sliceVal };
+
+                const wfMat = new THREE.LineBasicMaterial({ color: isGhost ? 0x94a3b8 : 0xffedd5, transparent: true, opacity: isGhost ? 0.2 : 0.6 });
+                mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), wfMat));
+
+                cubeGroup.add(mesh);
+                voxels.push(mesh);
+                voxelGrid[d.x + '_' + d.y + '_' + d.z] = mesh;
+            });
+
+            const createAxis = (start, end, colorHex) => {
+                const mat = new THREE.LineBasicMaterial({ color: colorHex, linewidth: 3 });
+                const geom = new THREE.BufferGeometry().setFromPoints([start, end]);
+                cubeGroup.add(new THREE.Line(geom, mat));
+            };
+            createAxis(new THREE.Vector3(-oX - 1, -oY - 0.5, -oZ - 0.5), new THREE.Vector3(oX + 0.75, -oY - 0.5, -oZ - 0.5), 0xf43f5e);
+            createAxis(new THREE.Vector3(-oX - 0.5, -oY - 1, -oZ - 0.5), new THREE.Vector3(-oX - 0.5, oY + 1, -oZ - 0.5), 0x10b981);
+            createAxis(new THREE.Vector3(-oX - 0.5, -oY - 0.5, -oZ - 1), new THREE.Vector3(-oX - 0.5, -oY - 0.5, oZ + 1.5 - 0.5 * spacing), 0x3b82f6);
+
+            rebuildTickLabels(listX, listY, listZ, oX, oY, oZ,
+                dimensionsData[keyX].label, dimensionsData[keyY].label, dimensionsData[keyZ].label);
+
+            document.getElementById('res-value').innerText = "-";
+            document.getElementById('code-mdx').innerText = "Chọn một ô phát sáng để sinh câu lệnh MDX tương ứng...";
+        }
+
+        // 8. TỰ ĐỘNG SINH CÂU LỆNH MDX
+        function mdxKey(dimKey, val) {
+            if (dimKey === 'thoi_gian_quy' || dimKey === 'thoi_gian_thang') return String(val).replace(/\D/g, '');
+            return val;
+        }
+
+        function updateQueryCodes(data) {
+            const measure = measuresConfig[data.measureKey];
+            const dimX = dimensionsData[data.keyX], dimY = dimensionsData[data.keyY], dimZ = dimensionsData[data.keyZ];
+            let mdxCode = "";
+
+            if (currentActivePreset === '4_1') {
+                mdxCode = `WITH
+MEMBER [Measures].[So Ngay Muon TB] AS
+    IIF(
+        [Measures].[Chi Tiet Muon Tra Count] = 0,
+        NULL,
+        [Measures].[So Ngay Muon]
+        /
+        [Measures].[Chi Tiet Muon Tra Count]
+    )
+
+SELECT
+{
+    [Measures].[So Ngay Muon TB]
+} ON COLUMNS,
+
+GENERATE(
+    {
+        [Ngay Muon].[Nam].&[2024],
+        [Ngay Muon].[Nam].&[2025],
+        [Ngay Muon].[Nam].&[2026]
+    },
+
+    {
+        [Ngay Muon].[Nam].CurrentMember
+    }
+    *
+    TOPCOUNT(
+        NONEMPTY(
+            [Quyen Sach].[Ten NXB].Children
+            *
+            [Quyen Sach].[Ten The Loai].Children,
+            [Measures].[So Ngay Muon TB]
+        ),
+        10,
+        [Measures].[So Ngay Muon TB]
+    )
+) ON ROWS
+
+FROM [QLTV]`;
+            } else if (currentActivePreset === '4_2') {
+                mdxCode = `WITH
+
+MEMBER [Measures].[So Phieu Bi Phat] AS
+    [Measures].[Chi Tiet Muon Tra Count]
+
+MEMBER [Measures].[Tien Phat TB] AS
+    IIF(
+        [Measures].[Chi Tiet Muon Tra Count] = 0,
+        NULL,
+        [Measures].[Tien Phat]
+        /
+        [Measures].[Chi Tiet Muon Tra Count]
+    )
+
+SELECT
+{
+    [Measures].[So Phieu Bi Phat],
+    [Measures].[Tien Phat],
+    [Measures].[Tien Phat TB]
+}
+ON COLUMNS,
+
+GENERATE(
+    {
+        [Ngay Tra Thuc Te].[Nam].&[2024],
+        [Ngay Tra Thuc Te].[Nam].&[2025],
+        [Ngay Tra Thuc Te].[Nam].&[2026]
+    },
+
+    {
+        [Ngay Tra Thuc Te].[Nam].CurrentMember
+    }
+    *
+    TOPCOUNT(
+        NONEMPTY(
+            [Nhan Vien].[Ten NV].Children
+            *
+            [Quyen Sach].[Ten The Loai].Children,
+            [Measures].[Tien Phat]
+        ),
+        10,
+        [Measures].[Tien Phat]
+    )
+)
+ON ROWS
+
+FROM [QLTV]`;
+            } else if (currentActivePreset === '4_3') {
+                mdxCode = `WITH
+
+MEMBER [Measures].[Tong Luot Muon] AS
+    [Measures].[Chi Tiet Muon Tra Count]
+
+MEMBER [Measures].[Ty Trong Muon %] AS
+    IIF(
+        (
+            [Ban Doc].[Gioi Tinh].CurrentMember.Parent,
+            [Measures].[Chi Tiet Muon Tra Count]
+        ) = 0,
+        NULL,
+        [Measures].[Chi Tiet Muon Tra Count]
+        /
+        (
+            [Ban Doc].[Gioi Tinh].CurrentMember.Parent,
+            [Measures].[Chi Tiet Muon Tra Count]
+        ) * 100
+    )
+
+SELECT
+{
+    [Measures].[Tong Luot Muon],
+    [Measures].[Ty Trong Muon %]
+} ON COLUMNS,
+
+NON EMPTY
+(
+    {
+        [Ngay Muon].[Nam].&[2024],
+        [Ngay Muon].[Nam].&[2025],
+        [Ngay Muon].[Nam].&[2026]
+    }
+    *
+    TOPCOUNT(
+        [Quyen Sach].[Ten The Loai].Children,
+        20,
+        [Measures].[Tong Luot Muon]
+    )
+    *
+    [Ban Doc].[Gioi Tinh].Children
+)
+ON ROWS
+
+FROM [QLTV]`;
+            } else {
+                let sliceMDX = "";
+                if (data.sliceDim !== 'none' && data.sliceVal !== 'all') {
+                    sliceMDX = `\n      * ${dimensionsData[data.sliceDim].mdxName}.${dimensionsData[data.sliceDim].mdxAttrs[0]}.&[${mdxKey(data.sliceDim, data.sliceVal)}]`;
+                }
+                mdxCode = `WITH
+  MEMBER [${measure.label}] AS
+    ${measure.expr}
+SELECT
+  NON EMPTY
+    { [${measure.label}] } ON COLUMNS,
+  NON EMPTY
+    (
+      ${dimX.mdxName}.${dimX.mdxAttrs[0]}.&[${mdxKey(data.keyX, data.nameX)}]
+      * ${dimY.mdxName}.${dimY.mdxAttrs[0]}.&[${mdxKey(data.keyY, data.nameY)}]
+      * ${dimZ.mdxName}.${dimZ.mdxAttrs[0]}.&[${mdxKey(data.keyZ, data.nameZ)}]${sliceMDX}
+    ) ON ROWS
+FROM [QLTV];`;
+            }
+            document.getElementById('code-mdx').innerText = mdxCode;
+        }
+
+        // 9. RAYCASTER TƯƠNG TÁC
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let selectedMesh = null;
+
+        function clearTickHighlights() {
+            ['x', 'y', 'z'].forEach(ax => tickMeshes[ax].forEach(el => setTickHighlight(el, false)));
+        }
+        function deselect() {
+            if (selectedMesh) {
+                selectedMesh.material.emissive.setHex(0x000000); 
+                selectedMesh.remove(selectionOutline);
+                selectedMesh = null;
+            }
+            selectionOutline.visible = false;
+            valueLabel.visible = false;
+            clearTickHighlights();
+        }
+        
+        function selectVoxel(mesh) {
+            if (!mesh) return;
+            if (selectedMesh) {
+                selectedMesh.material.emissive.setHex(0x000000);
+                selectedMesh.remove(selectionOutline);
+            }
+            clearTickHighlights();
+
+            selectedMesh = mesh;
+            mesh.add(selectionOutline);
+            selectionOutline.visible = true;
+
+            // HIỆU ỨNG PHÁT SÁNG DẠ QUANG (Neon Green) KHI CLICK VÀO KHỐI
+            mesh.material.emissive.setHex(0x39ff14);
+
+            const data = mesh.userData;
+            document.getElementById('res-x').innerText = data.nameX;
+            document.getElementById('res-y').innerText = data.nameY;
+            document.getElementById('res-z').innerText = data.nameZ;
+            let displayVal = `${data.val.toLocaleString('vi-VN')} ${measuresConfig[data.measureKey].unit}`;
+            if (data.measureKey === 'tien_phat' && data.val === 0) displayVal = "0 VNĐ";
+            document.getElementById('res-value').innerText = displayVal;
+            updateQueryCodes(data);
+
+            setTickHighlight(tickMeshes.x[data.gridX], true);
+            setTickHighlight(tickMeshes.y[data.gridY], true);
+            setTickHighlight(tickMeshes.z[data.gridZ], true);
+
+            setValueLabel(displayVal);
+            valueLabel.visible = true;
+        }
+
+        window.addEventListener('click', (event) => {
+            if (event.target !== renderer.domElement) return;
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const activeVoxels = voxels.filter(v => v.visible);
+            const intersects = raycaster.intersectObjects(activeVoxels);
+
+            if (intersects.length > 0) selectVoxel(intersects[0].object);
+            else deselect();
+        });
+
+        const NAV_KEYS = {
+            ArrowRight: ['x', 1], ArrowLeft: ['x', -1],
+            ArrowUp: ['y', 1], ArrowDown: ['y', -1],
+            PageUp: ['z', 1], PageDown: ['z', -1]
+        };
+        function findVoxelNear(x, y, z, axis, dir) {
+            let cx = x, cy = y, cz = z;
+            for (let step = 0; step < 64; step++) {
+                if (axis === 'x') cx += dir; else if (axis === 'y') cy += dir; else cz += dir;
+                if (cx < 0 || cy < 0 || cz < 0 || cx >= gridDims.x || cy >= gridDims.y || cz >= gridDims.z) return null;
+                const m = voxelGrid[cx + '_' + cy + '_' + cz];
+                if (m) return m;
+            }
+            return null;
+        }
+        function flashNavKey(axis, dir) {
+            const k = document.querySelector(`#nav-pad .nav-key[data-axis="${axis}"][data-dir="${dir}"]`);
+            if (!k) return;
+            k.classList.add('pressed');
+            setTimeout(() => k.classList.remove('pressed'), 160);
+        }
+        function navigate(axis, dir) {
+            flashNavKey(axis, dir);
+            if (!selectedMesh) {
+                if (voxels.length) selectVoxel(voxels.find(v => v.visible) || voxels[0]);
+                return;
+            }
+            const d = selectedMesh.userData;
+            const next = findVoxelNear(d.gridX, d.gridY, d.gridZ, axis, dir);
+            if (next) selectVoxel(next);
+        }
+        window.addEventListener('keydown', (e) => {
+            const nav = NAV_KEYS[e.key];
+            if (!nav) return;
+            const t = e.target;
+            if (t && /^(SELECT|INPUT|TEXTAREA)$/.test(t.tagName)) return;
+            e.preventDefault();
+            navigate(nav[0], nav[1]);
+        });
+        document.querySelectorAll('#nav-pad .nav-key').forEach(k => {
+            k.addEventListener('click', () => navigate(k.dataset.axis, parseInt(k.dataset.dir, 10)));
+        });
+
+        // INIT
+        const _nDim = Object.keys(dimensionsData).length;
+        document.getElementById('stat-total-dim').innerText = _nDim + ' / ' + _nDim;
+        updateSliceDimensionOptions();
+        buildCube();
+
+        let autoRotate = false;
+        document.getElementById('btn-auto-rotate').addEventListener('click', () => {
+            autoRotate = !autoRotate;
+            document.getElementById('btn-auto-rotate').classList.toggle('secondary');
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            currentActivePreset = null;
+            updatePresetButtons();
+            selectX.value = 'thoi_gian_nam'; selectY.value = 'nhan_vien'; selectZ.value = 'the_loai';
+            document.getElementById('select-measure').value = 'tong_luot_muon';
+            updateSliceDimensionOptions();
+            camera.position.set(10, 10, 15); controls.target.set(0, 0, 0); autoRotate = false;
+            document.getElementById('btn-auto-rotate').classList.add('secondary');
+            buildCube();
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        const animate = () => {
+            requestAnimationFrame(animate);
+            if (autoRotate) {
+                cubeGroup.rotation.y += 0.005;
+                if (typeof starField !== 'undefined') starField.rotation.y += 0.0003;
+            } else {
+                cubeGroup.rotation.y = 0;
+            }
+            controls.update();
+
+            if (valueLabel.visible && selectedMesh) {
+                selectedMesh.getWorldPosition(_vlPos);
+                valueLabel.position.copy(_vlPos);
+                valueLabel.quaternion.copy(camera.quaternion);
+            }
+
+            renderer.render(scene, camera);
+        };
+        animate();
+    </script>
+</body>
+
+</html>
